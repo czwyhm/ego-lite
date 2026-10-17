@@ -1,0 +1,33 @@
+{
+  "name": "@ego-lite/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ego Lite Electron and React security desktop scaffold",
+  "main": "dist/main.mjs",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "start": "electron dist/main.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run typecheck && node --test test/**/*.test.mjs"
+  },
+  "dependencies": {
+    "@ego-lite/mcp": "file:../../packages/mcp",
+    "@vitejs/plugin-react": "^4.4.1",
+    "electron": "^44.8.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "esbuild": "^0.25.4",
+    "typescript": "^5.8.3"
+  }
+}

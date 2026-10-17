@@ -1,0 +1,29 @@
+{
+  "name": "ego-lite-security-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-platform browser telemetry and authorized web security workspace for ego-lite",
+  "type": "module",
+  "engines": {
+    "node": "22.14.0"
+  },
+  "workspaces": [
+    "package/ego-browser",
+    "packages/security-core",
+    "packages/mcp",
+    "packages/browser-adapter",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @ego-lite/security-core && npm run build --workspace @ego-lite/browser-adapter && npm run build --workspace @ego-lite/mcp && npm run build --workspace @ego-lite/desktop && npm run build --workspace ego-browser-v2",
+    "typecheck": "npm run typecheck --workspace @ego-lite/security-core && npm run typecheck --workspace @ego-lite/browser-adapter && npm run typecheck --workspace @ego-lite/mcp && npm run typecheck --workspace @ego-lite/desktop",
+    "test": "npm run test --workspace @ego-lite/security-core && npm run test --workspace @ego-lite/browser-adapter && npm run test --workspace @ego-lite/mcp && npm run test --workspace @ego-lite/desktop && npm run test --workspace ego-browser-v2",
+    "sdk:build": "npm run build --workspace ego-browser-v2",
+    "sdk:test": "npm run test --workspace ego-browser-v2",
+    "mcp": "npm run start --workspace @ego-lite/mcp",
+    "desktop:dev": "npm run dev --workspace @ego-lite/desktop",
+    "desktop:build": "npm run build --workspace @ego-lite/desktop",
+    "browser:install": "playwright install chromium",
+    "validate:site-skills": "npm run validate:site-skills --workspace ego-browser-v2"
+  }
+}
