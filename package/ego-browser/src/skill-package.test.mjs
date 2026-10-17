@@ -12,7 +12,7 @@ const guideSource = fileURLToPath(
 
 test("the bundled usage guide is the source guide between version and end markers", async () => {
   const bundled = await readFile(join(outDir, "ego-browser/SKILL.md"), "utf8");
-  const source = await readFile(guideSource, "utf8");
+  const source = (await readFile(guideSource, "utf8")).replace(/\r\n/g, "\n");
   const version = /^version: "([^"]+)"$/m.exec(source)[1];
   const lines = bundled.trimEnd().split("\n");
 
@@ -67,8 +67,19 @@ test("the entry Skill defers usage to ego-browser skill", async () => {
 test("project Agent and Codex entries share the canonical Skill", async () => {
   for (const directory of [".agents", ".codex"]) {
     assert.equal(
-      await readlink(join(repoRoot, directory, "skills/ego-browser")),
+      await linkTarget(join(repoRoot, directory, "skills/ego-browser")),
       "../../skills/ego-browser",
     );
   }
 });
+
+async function linkTarget(path) {
+  try {
+    return await readlink(path);
+  } catch (error) {
+    // Windows checkouts without symlink privileges materialize a tracked
+    // symlink as a one-line text file containing its target.
+    if (error?.code !== "EINVAL" && error?.code !== "UNKNOWN") throw error;
+    return (await readFile(path, "utf8")).trim();
+  }
+}

@@ -7,15 +7,15 @@
     "ego-browser": "./dist/out/index.js"
   },
   "scripts": {
-    "clean": "rm -rf dist artifacts",
+    "clean": "node -e \"for (const p of ['dist','artifacts']) require('node:fs').rmSync(p,{recursive:true,force:true})\"",
     "build": "node scripts/build.mjs",
     "check:skill-translation": "node scripts/check-skill-translation.mjs",
     "e2e": "node scripts/run-real-browser-e2e.mjs",
-    "prepare": "if [ \"$CI\" = \"true\" ]; then exit 0; fi; cd ../.. && lefthook install",
+    "prepare": "node ../../scripts/prepare.mjs",
     "style:check": "prettier --check \"src/**/*.{ts,mjs,js}\" \"scripts/**/*.{ts,mjs,js}\" package.json README.md",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && npm run check:skill-translation && npm run typecheck && node --test \"src/**/*.test.mjs\"",
-    "validate:site-skills": "npm run build && EGO_BROWSER_AGENT_WORKSPACE=../../skills/ego-browser node dist/scripts/validate-site-skills.js"
+    "test": "npm run build && npm run check:skill-translation && npm run typecheck && node --test --test-concurrency=1 \"src/**/*.test.mjs\"",
+    "validate:site-skills": "npm run build && node dist/scripts/validate-site-skills.js ../../skills/ego-browser/learnings"
   },
   "engines": {
     "node": ">=22"

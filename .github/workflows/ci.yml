@@ -17,36 +17,57 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: package/ego-browser
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: package/ego-browser/package-lock.json
-      - run: npm ci
-      - run: npm run style:check
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts
       - run: npm audit --registry=https://registry.npmjs.org --audit-level=moderate
       - run: npm test
-      - name: Check plugin style
+      - name: Validate site skills
+        run: npm run validate:site-skills
+      - name: Check plugin style and tests
+        if: matrix.os == 'ubuntu-latest'
         working-directory: .
-        run: package/ego-browser/node_modules/.bin/prettier --check "plugins/**/*.{mjs,js,json,md}"
-      - name: Test agent plugin
-        working-directory: plugins/ego
-        run: npm test
-      - run: npm run validate:site-skills
+        run: |
+          package/ego-browser/node_modules/.bin/prettier --check "plugins/**/*.{mjs,js,json,md}"
+          npm --prefix plugins/ego test
       - name: Archive release payload
-        if: env.SHOULD_RELEASE == 'true'
+        if: env.SHOULD_RELEASE == 'true' && matrix.os == 'ubuntu-latest'
         run: tar -czf dist/ego-browser-release-payload.tar.gz -C dist/out .
       - uses: actions/upload-artifact@v4
-        if: env.SHOULD_RELEASE == 'true'
+        if: env.SHOULD_RELEASE == 'true' && matrix.os == 'ubuntu-latest'
         with:
           name: ego-browser-release-payload
           path: package/ego-browser/dist/ego-browser-release-payload.tar.gz
+
+  docker:
+    name: Docker build and CLI smoke test
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build headless image
+        run: docker build --tag ego-lite-headless:ci .
+      - name: Run MCP initialize smoke test
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+            | docker run --rm -i ego-lite-headless:ci
+      - name: Run bundled CLI help
+        run: docker run --rm --entrypoint node ego-lite-headless:ci package/ego-browser/dist/out/index.js --help
 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')

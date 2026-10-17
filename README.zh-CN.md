@@ -150,6 +150,50 @@ Agent 会加载 `ego-browser` Skill，在自己的 Space 里打开页面，读�
 <!-- star-history:end -->
 </a>
 
+## Windows/Linux 安全控制台
+
+本仓库现在还包含一个面向 Windows 11 和 Ubuntu 24.04 的跨平台安全控制台基础：
+
+- Playwright Chromium 浏览器后端；
+- 浏览器请求元数据和主机连接元数据监控；
+- 脱敏后的 SQLite 本地存储；
+- HTTP 安全头、TLS、Cookie、CORS、混合内容和暴露面分析；
+- 仅限白名单 `test`/`staging` 目标的低风险 DAST 探针；
+- 默认只读的 stdio MCP 服务；
+- Electron + React 桌面控制台。
+
+安全功能只应用于明确授权的目标。默认不保存 Cookie、Authorization、完整响应正文或 TLS 明文；主动 DAST 需要显式启用、目标白名单、测试环境标记、速率限制和人工确认。
+
+项目使用 Node.js 22.14.0，并通过根目录 lockfile 保证依赖可复现：
+
+```bash
+npm ci
+npm run browser:install
+npm run build
+npm test
+```
+
+启动 MCP 服务：
+
+```bash
+npm run mcp
+```
+
+启动桌面控制台：
+
+```bash
+npm run desktop:dev
+```
+
+构建无界面 Docker 服务：
+
+```bash
+docker build -t ego-lite-headless:local .
+docker run --rm -i ego-lite-headless:local
+```
+
+完整的跨平台构建、测试、环境变量和部署说明请参阅英文 [README.md](README.md)。
+
 ## 许可证
 
 本仓库内容基于 [MIT License](LICENSE) 发布。ego lite 浏览器是独立、免费的下载产品。

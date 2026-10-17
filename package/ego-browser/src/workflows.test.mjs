@@ -9,7 +9,7 @@ function workflow(name) {
   return readFileSync(
     new URL(`../../../.github/workflows/${name}.yml`, import.meta.url),
     "utf8",
-  );
+  ).replace(/\r\n/g, "\n");
 }
 
 function releaseGuards(github) {

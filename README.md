@@ -33,6 +33,20 @@ ego (lite) is a browser where you and your AI agents work in parallel. Your agen
 
 Existing tools like browser-use and agent-browser are a bridge to the browser, not a browser of their own: they need a separate one to drive, your browser data rarely carries over intact, the connection is unstable, and you and the agent end up fighting over control of the browser. ego lite is one browser designed from the start for the two of you to share. No extra setup, and the agent can always reach your real logins and tabs through `ego-browser`.
 
+> **Repository scope:** this repository contains the open-source `ego-browser` SDK
+> and agent Skill. The closed-source Ego Lite browser application is **not
+> included**. Browser actions that depend on `globalThis.ego` require a separately
+> installed Ego Lite app; the local CLI and Docker image can still build and run
+> SDK-only commands such as `--help`.
+
+> **Portable security console:** this checkout also contains a Windows 11 and
+> Ubuntu 24.04 foundation built on Playwright Chromium. It provides redacted
+> browser request telemetry, host connection metadata adapters, passive web
+> security analysis, guarded test/staging DAST probes, a local SQLite store, a
+> read-only-by-default stdio MCP service, and an Electron/React console. It is
+> an authorized defensive assessment tool, not a replacement for the closed
+> Ego Lite browser application.
+
 ## Demo
 
 https://github.com/user-attachments/assets/ffe7954b-58ee-411e-b35d-ec30c58a08bc
@@ -130,6 +144,164 @@ We benchmarked ego lite against Vercel's agent-browser on four complex browser a
 ## Docs
 
 Tutorials, the full tool reference, and integration guides live at [lite.ego.app/document/](https://lite.ego.app/document/).
+
+## Reproducible development
+
+The SDK is an ESM Node.js project. The supported runtime is pinned in
+[`.nvmrc`](.nvmrc) (Node.js 22.14.0), and dependencies are locked by the root
+[`package-lock.json`](package-lock.json). Install dependencies inside the
+checkout; no global package installation is needed.
+
+### Set up
+
+With `nvm` installed, select the pinned runtime and install from the lockfile:
+
+```bash
+nvm install
+nvm use
+npm ci
+npm run browser:install
+```
+
+On Windows, use an `nvm-windows` installation that supports the same `.nvmrc`
+version, or install Node.js 22.14.0 directly. The root npm commands below work
+from PowerShell and POSIX shells.
+
+### Build and run
+
+Build the SDK, security core, Playwright adapter, MCP service, and desktop
+renderer:
+
+```bash
+npm run build
+node package/ego-browser/dist/out/index.js --help
+```
+
+Start the local stdio MCP service:
+
+```bash
+npm run mcp
+```
+
+Targets are supplied as JSON through local environment configuration. Keep
+internal hostnames and target lists out of version control:
+
+```bash
+EGO_SECURITY_TARGETS_JSON='[{"id":"staging-app","name":"Staging app","url":"https://staging.example.test","environment":"staging","authorized":true}]' npm run mcp
+```
+
+On PowerShell, set the variable before starting the service:
+
+```powershell
+$env:EGO_SECURITY_TARGETS_JSON='[{"id":"staging-app","name":"Staging app","url":"https://staging.example.test","environment":"staging","authorized":true}]'
+npm run mcp
+```
+
+The repository CLI reads JavaScript from standard input. Run a script file with
+the same command on every supported host:
+
+```bash
+node package/ego-browser/dist/out/index.js < ./path/to/script.js
+```
+
+For real browser work, load this bundle through the separately installed Ego
+Lite CLI as described in [CONTRIBUTING.md](CONTRIBUTING.md). The open-source
+checkout does not provide the native browser bindings.
+
+### Test
+
+After setup, the single cross-platform project test command is:
+
+```bash
+npm test
+```
+
+It runs the security core, browser adapter, MCP, Electron security-boundary,
+and existing SDK tests offline after dependencies have been installed. On
+Linux, `make test` is an equivalent convenience alias. The individual package
+commands remain useful for focused debugging:
+
+```powershell
+npm run test --workspace @ego-lite/security-core
+npm run test --workspace @ego-lite/browser-adapter
+npm run test --workspace @ego-lite/mcp
+npm run test --workspace @ego-lite/desktop
+npm run test --workspace ego-browser-v2
+```
+
+The SDK test builds the bundle, checks Skill translation, typechecks TypeScript,
+and runs the Node test suite without requiring the closed browser. The
+additional build and validation checks are:
+
+```bash
+npm run sdk:build
+npm run validate:site-skills
+```
+
+The real-browser E2E suite (`npm --prefix package/ego-browser run e2e`) is an
+optional local gate and requires the separately installed Ego Lite application.
+
+The headless MCP package has an offline-friendly test command:
+
+```bash
+npm run test --workspace @ego-lite/mcp
+```
+
+Run the stdio service locally with `npm run mcp`; it reads
+one JSON-RPC request per line and writes one response per line. The default
+provider is configured from `EGO_SECURITY_TARGETS_JSON` and lazily starts an
+isolated Playwright page when an observation is requested. Browser telemetry is
+metadata-only and redacted before it reaches MCP.
+
+### Run the desktop console
+
+Start the Electron/React development console:
+
+```bash
+npm run desktop:dev
+```
+
+Build the renderer and Electron main/preload bundles:
+
+```bash
+npm run desktop:build
+```
+
+The desktop renderer has no Node integration and receives only a narrow,
+read-only preload bridge. The GUI uses the same local target configuration and
+SQLite-backed provider as the MCP service.
+
+### Build and deploy the headless image
+
+The root [`Dockerfile`](Dockerfile) uses Node.js 22.14.0 and the committed root
+npm lockfile. It installs the Playwright Chromium runtime and builds the
+security core, browser adapter, standalone `ego-browser` CLI, and headless
+newline-delimited JSON-RPC MCP service. MCP uses stdio rather than an HTTP
+listener so clients can launch it as a subprocess.
+
+```bash
+docker build --tag ego-lite-headless:local .
+docker run --rm -i ego-lite-headless:local < ./path/to/mcp-request.jsonl
+docker run --rm --entrypoint node ego-lite-headless:local package/ego-browser/dist/out/index.js --help
+```
+
+The MCP service starts with read-only tools and keeps active DAST disabled by
+default. Set the `EGO_MCP_*` values from [`.env.example`](.env.example) through
+your deployment environment only when the corresponding policy and allowlist
+are in place.
+
+To publish it to a registry, replace the example registry and tag with your
+own deployment target:
+
+```bash
+docker tag ego-lite-headless:local registry.example.invalid/ego-lite-headless:22.14.0
+docker push registry.example.invalid/ego-lite-headless:22.14.0
+```
+
+The image does not contain the closed Ego Lite browser, browser profiles,
+cookies, or credentials. Do not copy a real `.env` file into the image; use
+environment injection at deployment time. `.env.example` contains placeholders
+only.
 
 ## Community
 

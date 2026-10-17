@@ -39,6 +39,7 @@ coverage/
 # Environment and local config
 .env
 .env.*
+!.env.example
 *.local
 
 # IDE / Editor
@@ -50,6 +51,7 @@ coverage/
 
 # Logs
 *.log
+data/
 
 # Archives
 *.zip

@@ -116,7 +116,11 @@ try {
 // Replace the source frontmatter with the version line and end marker that
 // `ego-browser skill` prints verbatim; agents use the marker to detect truncation.
 function renderGuide(source) {
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(source);
+  // Git checkouts on Windows may materialize tracked Markdown with CRLF. Keep
+  // the generated guide deterministic across platforms before parsing its
+  // frontmatter.
+  const normalizedSource = source.replace(/\r\n/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(normalizedSource);
   const version = match && /^version: "([^"]+)"$/m.exec(match[1])?.[1];
   if (!version) {
     throw new Error(`${guideSource} needs frontmatter with a version`);

@@ -15,10 +15,7 @@ pre-commit:
     branch-up-to-date:
       run: node scripts/check-branch.mjs
     style-check:
-      run: |
-        files=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(package/ego-browser|plugins)/.*\.(ts|mjs|js|json|md)$' | grep -v '^skills/ego-browser/learnings/' || true)
-        [ -z "$files" ] && exit 0
-        package/ego-browser/node_modules/.bin/prettier --check $files
+      run: node scripts/check-staged-style.mjs
     vulnerability-audit:
       run: |
         git diff --cached --name-only --diff-filter=ACMR | grep -q '^package/ego-browser/' || exit 0
@@ -36,6 +33,4 @@ pre-commit:
         git diff --cached --name-only --diff-filter=ACMR | grep -Eq '^(plugins/|skills/ego-browser/|package/ego-browser/skill-body/|\.agents/plugins/|\.claude-plugin/)' || exit 0
         npm --prefix plugins/ego test
     e2e-test:
-      run: |
-        git diff --cached --name-only --diff-filter=ACMR | grep -Eq '^(package/ego-browser/|skills/ego-browser/)' || exit 0
-        cd package/ego-browser && npm run e2e
+      run: node scripts/run-e2e-if-available.mjs
